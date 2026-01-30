@@ -56,6 +56,7 @@
           </div>
         </div>
         <ControlPanel
+          v-if="video"
           :currentTime="currentTime"
           :duration="duration"
           :isPlaying="!isPaused"
@@ -66,6 +67,7 @@
           @pause="handleControlPause"
           @seek="handleControlSeek"
           @update-permission="handleUpdatePermission"
+          @sync="handleSync"
         />
         <DanmakuInput @send="handleSendDanmaku" />
       </div>
@@ -211,6 +213,7 @@ const {
   sendDanmaku,
   leaveRoom,
   updatePermission,
+  requestSync,
   setupListeners,
 } = useRoom();
 
@@ -319,6 +322,17 @@ const setupSyncListeners = () => {
   on("sync-seek", ({ time }) => {
     if (dp) {
       dp.seek(time);
+    }
+  });
+
+  on("sync-state", ({ playState }) => {
+    if (dp && playState) {
+      dp.seek(playState.currentTime);
+      if (playState.isPlaying) {
+        dp.play();
+      } else {
+        dp.pause();
+      }
     }
   });
 };
@@ -437,6 +451,10 @@ const handleControlSeek = (time) => {
 
 const handleUpdatePermission = (allow) => {
   updatePermission(allow);
+};
+
+const handleSync = () => {
+  requestSync();
 };
 
 const copyRoomLink = () => {

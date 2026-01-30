@@ -1,20 +1,20 @@
 <template>
-  <div class="control-panel" v-if="canControl">
+  <div class="control-panel">
     <div class="control-main">
       <div class="control-buttons">
-        <button class="btn-control btn-skip" @click="seek(-30)" title="后退 30 秒">
+        <button class="btn-control btn-skip" @click="seek(-30)" title="后退 30 秒" :disabled="!canControl">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" fill="currentColor"/>
             <text x="12" y="15" text-anchor="middle" font-size="6" fill="currentColor">30</text>
           </svg>
         </button>
-        <button class="btn-control btn-skip" @click="seek(-10)" title="后退 10 秒">
+        <button class="btn-control btn-skip" @click="seek(-10)" title="后退 10 秒" :disabled="!canControl">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" fill="currentColor"/>
             <text x="12" y="15" text-anchor="middle" font-size="6" fill="currentColor">10</text>
           </svg>
         </button>
-        <button class="btn-control btn-play" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'">
+        <button class="btn-control btn-play" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'" :disabled="!canControl">
           <svg v-if="isPlaying" viewBox="0 0 24 24" fill="none">
             <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/>
             <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/>
@@ -23,26 +23,32 @@
             <path d="M8 5v14l11-7L8 5z" fill="currentColor"/>
           </svg>
         </button>
-        <button class="btn-control btn-skip" @click="seek(10)" title="快进 10 秒">
+        <button class="btn-control btn-skip" @click="seek(10)" title="快进 10 秒" :disabled="!canControl">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z" fill="currentColor"/>
             <text x="12" y="15" text-anchor="middle" font-size="6" fill="currentColor">10</text>
           </svg>
         </button>
-        <button class="btn-control btn-skip" @click="seek(30)" title="快进 30 秒">
+        <button class="btn-control btn-skip" @click="seek(30)" title="快进 30 秒" :disabled="!canControl">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z" fill="currentColor"/>
             <text x="12" y="15" text-anchor="middle" font-size="6" fill="currentColor">30</text>
           </svg>
         </button>
+        <button class="btn-control btn-sync" @click="onSync" title="同步到服务器">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 12a8 8 0 018-8v3l4-4-4-4v3a10 10 0 100 20 10 10 0 006.32-2.26l-1.46-1.46A8 8 0 014 12z" fill="currentColor"/>
+          </svg>
+        </button>
       </div>
       <div class="progress-section">
         <span class="time-display">{{ formatTime(currentTime) }}</span>
-        <div class="progress-bar-wrap" @click="onProgressClick" ref="progressBarRef">
+        <div class="progress-bar-wrap" :class="{ disabled: !canControl }" @click="canControl && onProgressClick($event)" ref="progressBarRef">
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: progressPercent + '%' }"></div>
           </div>
           <input
+            v-if="canControl"
             type="range"
             class="progress-input"
             :value="currentTime"
@@ -78,7 +84,7 @@ const props = defineProps({
   allowAllControl: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['play', 'pause', 'seek', 'update-permission'])
+const emit = defineEmits(['play', 'pause', 'seek', 'update-permission', 'sync'])
 
 const progressBarRef = ref(null)
 const isSeeking = ref(false)
@@ -90,6 +96,7 @@ const progressPercent = computed(() => {
 })
 
 const togglePlay = () => {
+  if (!props.canControl) return
   if (props.isPlaying) {
     emit('pause', props.currentTime)
   } else {
@@ -98,6 +105,7 @@ const togglePlay = () => {
 }
 
 const seek = (delta) => {
+  if (!props.canControl) return
   const newTime = Math.max(0, Math.min(props.duration, props.currentTime + delta))
   emit('seek', newTime)
 }
@@ -114,6 +122,7 @@ const onSeekChange = (e) => {
 }
 
 const onProgressClick = (e) => {
+  if (!props.canControl) return
   if (!progressBarRef.value) return
   const rect = progressBarRef.value.getBoundingClientRect()
   const percent = (e.clientX - rect.left) / rect.width
@@ -123,6 +132,10 @@ const onProgressClick = (e) => {
 
 const onPermissionChange = (e) => {
   emit('update-permission', e.target.checked)
+}
+
+const onSync = () => {
+  emit('sync')
 }
 
 const formatTime = (seconds) => {
@@ -202,6 +215,40 @@ const formatTime = (seconds) => {
   height: 26px;
 }
 
+.btn-sync {
+  width: 40px;
+  height: 40px;
+  margin-left: 8px;
+}
+
+.btn-sync svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-sync:hover {
+  color: var(--color-gold);
+  border-color: var(--color-gold-dim);
+}
+
+.btn-control:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-control:disabled:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+  transform: none;
+}
+
+.btn-play:disabled {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
 .progress-section {
   display: flex;
   align-items: center;
@@ -224,6 +271,10 @@ const formatTime = (seconds) => {
   display: flex;
   align-items: center;
   cursor: pointer;
+}
+
+.progress-bar-wrap.disabled {
+  cursor: default;
 }
 
 .progress-bar {
