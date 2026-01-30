@@ -57,9 +57,24 @@ module.exports = function(io, socket) {
   socket.on('request-sync', ({ roomId }) => {
     const room = roomStore.getRoom(roomId);
     if (room) {
-      socket.emit('sync-state', {
+      // 向房主请求实时状态
+      io.to(room.hostId).emit('request-current-state', { requesterId: socket.id });
+    }
+  });
+
+  // 房主响应实时状态请求
+  socket.on('current-state-response', ({ requesterId, currentTime, isPlaying }) => {
+    const roomId = socket.roomId;
+    if (!roomId || !roomStore.isHost(roomId, socket.id)) return;
+
+    const room = roomStore.getRoom(roomId);
+    if (room) {
+      // 更新服务器状态
+      roomStore.updatePlayState(roomId, { currentTime, isPlaying });
+      // 发送给请求者
+      io.to(requesterId).emit('sync-state', {
         video: room.video,
-        playState: room.playState,
+        playState: { currentTime, isPlaying },
         danmakuHistory: room.danmakuHistory,
         allowAllControl: room.allowAllControl
       });

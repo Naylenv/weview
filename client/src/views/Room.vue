@@ -211,7 +211,7 @@ const router = useRouter();
 const route = useRoute();
 const roomId = route.params.id;
 
-const { connect, on } = useSocket();
+const { connect, on, emit } = useSocket();
 const {
   room,
   members,
@@ -349,6 +349,17 @@ const setupSyncListeners = () => {
       } else {
         dp.pause();
       }
+    }
+  });
+
+  // 房主响应实时状态请求
+  on("request-current-state", ({ requesterId }) => {
+    if (dp && isHost.value) {
+      emit("current-state-response", {
+        requesterId,
+        currentTime: dp.video.currentTime,
+        isPlaying: !dp.video.paused
+      });
     }
   });
 };
