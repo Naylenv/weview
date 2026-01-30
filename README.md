@@ -77,7 +77,47 @@ weview/
 
 ## 部署
 
-### 云服务器部署
+### 方式一：Docker 部署（推荐）
+
+**简单部署（通过 IP:端口 访问）**
+
+```bash
+git clone https://github.com/Naylenv/weview.git
+cd weview
+docker compose -f docker-compose.simple.yml up -d
+```
+
+访问 `http://服务器IP:3000`
+
+**带域名 + 自动 HTTPS**
+
+1. 修改 `docker-compose.yml` 中的 `your-domain.com` 为你的域名
+2. 确保域名已解析到服务器
+
+```bash
+docker compose up -d
+```
+
+Caddy 会自动申请 SSL 证书，访问 `https://your-domain.com`
+
+**常用命令**
+
+```bash
+# 查看日志
+docker compose logs -f weview
+
+# 重启服务
+docker compose restart
+
+# 更新部署
+git pull
+docker compose up -d --build
+
+# 停止服务
+docker compose down
+```
+
+### 方式二：传统部署
 
 ```bash
 # 克隆仓库
@@ -91,14 +131,11 @@ cd client && npm install && cd ..
 # 构建前端
 npm run build
 
-# 启动服务 (建议使用 pm2)
+# 使用 PM2 启动 (需要先安装: npm install -g pm2)
 pm2 start server/index.js --name weview
+pm2 save
+pm2 startup
 ```
-
-### 环境变量
-
-可选配置：
-- `PORT` - 服务端口 (默认 3000)
 
 ## License
 
