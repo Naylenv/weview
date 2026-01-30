@@ -17,7 +17,8 @@
       "Bash(gh repo create:*)",
       "Bash(git push)",
       "Bash(curl:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(ssh:*)"
     ]
   }
 }

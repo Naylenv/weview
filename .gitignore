@@ -29,6 +29,3 @@ pids
 *.pid
 *.seed
 *.pid.lock
-
-# Docker
-.docker/

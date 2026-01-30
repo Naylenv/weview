@@ -26,27 +26,100 @@ WeView 是一个多人同步观影 Web 应用，让你和朋友可以远程一�
 
 ## 快速开始
 
-### 安装依赖
+### 本地开发
 
 ```bash
+# 安装依赖
 npm install
-cd client && npm install
-```
+cd client && npm install && cd ..
 
-### 启动开发服务器
-
-```bash
+# 启动开发服务器
 npm run dev
 ```
 
-这会同时启动：
-- 后端服务: http://localhost:3000
-- 前端服务: http://localhost:5173
+访问 http://localhost:5173
 
-### 生产构建
+## 部署
+
+### 方式一：Docker 一键部署（推荐）
 
 ```bash
+git clone https://github.com/Naylenv/weview.git
+cd weview
+docker compose up -d --build
+```
+
+访问 `http://服务器IP:3000`
+
+### 方式二：Docker + 域名（Cloudflare Tunnel）
+
+无需开放端口，通过 Cloudflare Tunnel 安全访问。
+
+**1. 创建 Cloudflare Tunnel**
+
+1. 登录 [Cloudflare Zero Trust](https://one.dash.cloudflare.com)
+2. 进入 **Networks** → **Tunnels** → **Create a tunnel**
+3. 选择 **Cloudflared**，给 Tunnel 起个名字
+4. 复制生成的 Token
+
+**2. 配置并启动**
+
+```bash
+git clone https://github.com/Naylenv/weview.git
+cd weview
+
+# 配置 Token
+cp .env.example .env
+nano .env  # 填入你的 TUNNEL_TOKEN
+
+# 启用 Cloudflare Tunnel（编辑 docker-compose.yml，取消 cloudflared 部分的注释）
+nano docker-compose.yml
+
+# 启动
+docker compose up -d --build
+```
+
+**3. 配置域名路由**
+
+回到 Cloudflare Tunnel 配置页面：
+- **Subdomain**: 你想要的子域名（如 `weview`）
+- **Domain**: 选择你的域名
+- **Service Type**: `HTTP`
+- **URL**: `weview:3000`
+
+保存后即可通过 `https://你的域名` 访问。
+
+### 方式三：传统部署
+
+```bash
+git clone https://github.com/Naylenv/weview.git
+cd weview
+
+npm install
+cd client && npm install && cd ..
 npm run build
+
+# 使用 PM2 启动
+pm2 start server/index.js --name weview
+```
+
+## 常用命令
+
+```bash
+# 查看状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f weview
+
+# 重启服务
+docker compose restart
+
+# 更新部署
+git pull && docker compose up -d --build
+
+# 停止服务
+docker compose down
 ```
 
 ## 项目结构
@@ -64,6 +137,8 @@ weview/
 │   ├── socket/             # Socket.IO 处理器
 │   └── store/              # 数据存储
 ├── uploads/                # 上传的视频文件
+├── docker-compose.yml      # Docker 编排配置
+├── Dockerfile              # Docker 镜像构建
 └── package.json
 ```
 
@@ -74,68 +149,6 @@ weview/
 3. 房主上传视频并选择播放
 4. 房主控制播放，所有成员同步观看
 5. 发送弹幕与朋友互动
-
-## 部署
-
-### 方式一：Docker 部署（推荐）
-
-**简单部署（通过 IP:端口 访问）**
-
-```bash
-git clone https://github.com/Naylenv/weview.git
-cd weview
-docker compose -f docker-compose.simple.yml up -d
-```
-
-访问 `http://服务器IP:3000`
-
-**带域名 + 自动 HTTPS**
-
-1. 修改 `docker-compose.yml` 中的 `your-domain.com` 为你的域名
-2. 确保域名已解析到服务器
-
-```bash
-docker compose up -d
-```
-
-Caddy 会自动申请 SSL 证书，访问 `https://your-domain.com`
-
-**常用命令**
-
-```bash
-# 查看日志
-docker compose logs -f weview
-
-# 重启服务
-docker compose restart
-
-# 更新部署
-git pull
-docker compose up -d --build
-
-# 停止服务
-docker compose down
-```
-
-### 方式二：传统部署
-
-```bash
-# 克隆仓库
-git clone https://github.com/Naylenv/weview.git
-cd weview
-
-# 安装依赖
-npm install
-cd client && npm install && cd ..
-
-# 构建前端
-npm run build
-
-# 使用 PM2 启动 (需要先安装: npm install -g pm2)
-pm2 start server/index.js --name weview
-pm2 save
-pm2 startup
-```
 
 ## License
 
