@@ -28,6 +28,7 @@ client/
 ├── src/
 │   ├── components/       # 可复用组件
 │   │   ├── ChatBox.vue       # 弹幕记录面板
+│   │   ├── ControlPanel.vue  # 播放中控台
 │   │   ├── DanmakuInput.vue  # 弹幕输入框
 │   │   └── DanmakuLayer.vue  # 弹幕显示层
 │   ├── composables/      # 组合式函数
@@ -112,6 +113,7 @@ docker compose down
 - `sync-pause` - 同步暂停
 - `sync-seek` - 同步进度
 - `send-danmaku` - 发送弹幕
+- `update-permission` - 更新控制权限
 
 **服务端 -> 客户端:**
 - `room-created` - 房间已创建
@@ -122,6 +124,7 @@ docker compose down
 - `sync-play` - 播放同步
 - `sync-pause` - 暂停同步
 - `sync-seek` - 进度同步
+- `permission-updated` - 权限已更新
 - `danmaku` - 收到弹幕
 
 ## 注意事项
@@ -129,6 +132,20 @@ docker compose down
 - 视频文件存储在 `uploads/` 目录，不纳入 Git
 - 房间数据存储在内存中，服务重启后清空
 - 前端开发服务器代理 `/api` 和 `/socket.io` 到后端
+
+## 电影院模式
+
+采用"电影院模式"设计理念，观众不能直接控制播放器，只有授权用户可以通过中控台控制：
+
+### 核心特性
+- **禁用播放器交互**: 用户无法直接拖动进度条或点击播放/暂停
+- **中控台控制**: 通过 ControlPanel 组件进行播放控制
+- **权限系统**: 房主可以开启"允许所有人控制"选项
+
+### 权限逻辑
+- 默认只有房主可以控制播放
+- 房主可以通过中控台开关允许所有成员控制
+- 权限状态存储在房间数据的 `allowAllControl` 字段
 
 ## 部署架构
 

@@ -15,7 +15,8 @@ module.exports = function(io, socket) {
       roomId,
       room: {
         ...room,
-        isHost: true
+        isHost: true,
+        allowAllControl: room.allowAllControl
       }
     });
 
@@ -37,20 +38,22 @@ module.exports = function(io, socket) {
     socket.nickname = nickname;
 
     const isHost = roomStore.isHost(roomId, socket.id);
+    const updatedRoom = roomStore.getRoom(roomId);
 
     // 通知加入者
     socket.emit('room-joined', {
       roomId,
       room: {
-        ...roomStore.getRoom(roomId),
-        isHost
+        ...updatedRoom,
+        isHost,
+        allowAllControl: updatedRoom.allowAllControl
       }
     });
 
     // 通知房间其他成员
     socket.to(roomId).emit('member-joined', {
       member: { id: socket.id, name: nickname, isHost: false },
-      members: roomStore.getRoom(roomId).members
+      members: updatedRoom.members
     });
 
     console.log(`${nickname} 加入房间 ${roomId}`);

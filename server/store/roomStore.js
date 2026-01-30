@@ -14,6 +14,7 @@ const roomStore = {
         lastUpdate: Date.now()
       },
       danmakuHistory: [],
+      allowAllControl: false,
       createdAt: Date.now()
     };
     rooms.set(roomId, room);
@@ -88,6 +89,21 @@ const roomStore = {
   isHost(roomId, memberId) {
     const room = rooms.get(roomId);
     return room && room.hostId === memberId;
+  },
+
+  canControl(roomId, memberId) {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+    if (room.allowAllControl) return true;
+    return room.hostId === memberId;
+  },
+
+  setAllowAllControl(roomId, allow) {
+    const room = rooms.get(roomId);
+    if (room) {
+      room.allowAllControl = allow;
+    }
+    return room;
   }
 };
 

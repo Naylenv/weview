@@ -55,6 +55,18 @@
             </div>
           </div>
         </div>
+        <ControlPanel
+          :currentTime="currentTime"
+          :duration="duration"
+          :isPlaying="!isPaused"
+          :isHost="isHost"
+          :canControl="canControl()"
+          :allowAllControl="allowAllControl"
+          @play="handleControlPlay"
+          @pause="handleControlPause"
+          @seek="handleControlSeek"
+          @update-permission="handleUpdatePermission"
+        />
         <DanmakuInput @send="handleSendDanmaku" />
       </div>
 
@@ -175,6 +187,7 @@ import { useRoom } from "../composables/useRoom";
 import DanmakuInput from "../components/DanmakuInput.vue";
 import DanmakuLayer from "../components/DanmakuLayer.vue";
 import ChatBox from "../components/ChatBox.vue";
+import ControlPanel from "../components/ControlPanel.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -188,6 +201,8 @@ const {
   video,
   playState,
   danmakuHistory,
+  allowAllControl,
+  canControl,
   selectVideo,
   syncPlay,
   syncPause,
@@ -195,6 +210,7 @@ const {
   sendHeartbeat,
   sendDanmaku,
   leaveRoom,
+  updatePermission,
   setupListeners,
 } = useRoom();
 
@@ -205,6 +221,8 @@ const videoList = ref([]);
 const uploading = ref(false);
 const uploadProgress = ref(0);
 const isPaused = ref(true);
+const currentTime = ref(0);
+const duration = ref(0);
 
 let dp = null;
 let heartbeatInterval = null;
@@ -258,40 +276,48 @@ const initPlayer = (videoData) => {
     },
     autoplay: false,
     theme: "#d4a853",
+    hotkey: false,
+    contextmenu: [],
   });
 
   dp.on("play", () => {
     isPaused.value = false;
-    if (isHost.value) syncPlay();
   });
 
   dp.on("pause", () => {
     isPaused.value = true;
-    if (isHost.value) syncPause();
   });
 
-  dp.on("seeked", () => {
-    if (isHost.value) syncSeek(dp.video.currentTime);
+  dp.on("timeupdate", () => {
+    if (dp) {
+      currentTime.value = dp.video.currentTime;
+    }
+  });
+
+  dp.on("loadedmetadata", () => {
+    if (dp) {
+      duration.value = dp.video.duration;
+    }
   });
 };
 
 const setupSyncListeners = () => {
   on("sync-play", ({ time }) => {
-    if (dp && !isHost.value) {
+    if (dp) {
       dp.seek(time);
       dp.play();
     }
   });
 
   on("sync-pause", ({ time }) => {
-    if (dp && !isHost.value) {
+    if (dp) {
       dp.seek(time);
       dp.pause();
     }
   });
 
   on("sync-seek", ({ time }) => {
-    if (dp && !isHost.value) {
+    if (dp) {
       dp.seek(time);
     }
   });
@@ -395,6 +421,22 @@ const triggerFileInput = () => {
 
 const handleSendDanmaku = (danmaku) => {
   sendDanmaku(danmaku);
+};
+
+const handleControlPlay = (time) => {
+  syncPlay(time);
+};
+
+const handleControlPause = (time) => {
+  syncPause(time);
+};
+
+const handleControlSeek = (time) => {
+  syncSeek(time);
+};
+
+const handleUpdatePermission = (allow) => {
+  updatePermission(allow);
 };
 
 const copyRoomLink = () => {
@@ -592,6 +634,23 @@ const formatSize = (bytes) => {
 
 :deep(.dplayer-controller) {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  pointer-events: none;
+}
+
+:deep(.dplayer-controller .dplayer-icons) {
+  pointer-events: auto;
+}
+
+:deep(.dplayer-controller .dplayer-icons-right) {
+  pointer-events: auto;
+}
+
+:deep(.dplayer-bar-wrap) {
+  pointer-events: none;
+}
+
+:deep(.dplayer-controller .dplayer-play-icon) {
+  pointer-events: none;
 }
 
 .sidebar {

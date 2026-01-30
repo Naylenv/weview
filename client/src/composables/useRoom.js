@@ -7,6 +7,7 @@ const isHost = ref(false)
 const video = ref(null)
 const playState = ref({ isPlaying: false, currentTime: 0 })
 const danmakuHistory = ref([])
+const allowAllControl = ref(false)
 
 export function useRoom() {
   const { socket, emit, on, off } = useSocket()
@@ -29,19 +30,31 @@ export function useRoom() {
     emit('select-video', { roomId: room.value.id, video: videoData })
   }
 
-  const syncPlay = () => {
-    if (!room.value || !isHost.value) return
-    emit('sync-play', { roomId: room.value.id })
+  const syncPlay = (time) => {
+    if (!room.value) return
+    if (!canControl()) return
+    emit('sync-play', { roomId: room.value.id, time })
   }
 
-  const syncPause = () => {
-    if (!room.value || !isHost.value) return
-    emit('sync-pause', { roomId: room.value.id })
+  const syncPause = (time) => {
+    if (!room.value) return
+    if (!canControl()) return
+    emit('sync-pause', { roomId: room.value.id, time })
   }
 
   const syncSeek = (time) => {
-    if (!room.value || !isHost.value) return
+    if (!room.value) return
+    if (!canControl()) return
     emit('sync-seek', { roomId: room.value.id, time })
+  }
+
+  const canControl = () => {
+    return isHost.value || allowAllControl.value
+  }
+
+  const updatePermission = (allow) => {
+    if (!room.value || !isHost.value) return
+    emit('update-permission', { roomId: room.value.id, allowAllControl: allow })
   }
 
   const sendHeartbeat = (currentTime, isPlaying) => {
@@ -64,6 +77,7 @@ export function useRoom() {
       room.value = data.room
       isHost.value = true
       members.value = data.room.members
+      allowAllControl.value = data.room.allowAllControl || false
     })
 
     on('room-joined', (data) => {
@@ -73,6 +87,7 @@ export function useRoom() {
       video.value = data.room.video
       playState.value = data.room.playState
       danmakuHistory.value = data.room.danmakuHistory || []
+      allowAllControl.value = data.room.allowAllControl || false
     })
 
     on('room-error', (data) => {
@@ -98,6 +113,13 @@ export function useRoom() {
       video.value = data.video
       playState.value = data.playState
       danmakuHistory.value = data.danmakuHistory || []
+      if (data.allowAllControl !== undefined) {
+        allowAllControl.value = data.allowAllControl
+      }
+    })
+
+    on('permission-updated', (data) => {
+      allowAllControl.value = data.allowAllControl
     })
 
     on('new-danmaku', (data) => {
@@ -112,6 +134,7 @@ export function useRoom() {
     video.value = null
     playState.value = { isPlaying: false, currentTime: 0 }
     danmakuHistory.value = []
+    allowAllControl.value = false
   }
 
   return {
@@ -121,6 +144,8 @@ export function useRoom() {
     video,
     playState,
     danmakuHistory,
+    allowAllControl,
+    canControl,
     createRoom,
     joinRoom,
     leaveRoom,
@@ -131,6 +156,7 @@ export function useRoom() {
     sendHeartbeat,
     requestSync,
     sendDanmaku,
+    updatePermission,
     setupListeners,
     resetState
   }

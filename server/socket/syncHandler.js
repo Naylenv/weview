@@ -14,33 +14,35 @@ module.exports = function(io, socket) {
   });
 
   // 播放控制同步
-  socket.on('sync-play', ({ roomId }) => {
-    if (!roomStore.isHost(roomId, socket.id)) return;
+  socket.on('sync-play', ({ roomId, time }) => {
+    if (!roomStore.canControl(roomId, socket.id)) return;
 
     const room = roomStore.getRoom(roomId);
     if (room) {
-      roomStore.updatePlayState(roomId, { ...room.playState, isPlaying: true });
-      socket.to(roomId).emit('sync-play', { time: room.playState.currentTime });
+      const currentTime = time !== undefined ? time : room.playState.currentTime;
+      roomStore.updatePlayState(roomId, { ...room.playState, isPlaying: true, currentTime });
+      io.to(roomId).emit('sync-play', { time: currentTime });
     }
   });
 
-  socket.on('sync-pause', ({ roomId }) => {
-    if (!roomStore.isHost(roomId, socket.id)) return;
+  socket.on('sync-pause', ({ roomId, time }) => {
+    if (!roomStore.canControl(roomId, socket.id)) return;
 
     const room = roomStore.getRoom(roomId);
     if (room) {
-      roomStore.updatePlayState(roomId, { ...room.playState, isPlaying: false });
-      socket.to(roomId).emit('sync-pause', { time: room.playState.currentTime });
+      const currentTime = time !== undefined ? time : room.playState.currentTime;
+      roomStore.updatePlayState(roomId, { ...room.playState, isPlaying: false, currentTime });
+      io.to(roomId).emit('sync-pause', { time: currentTime });
     }
   });
 
   socket.on('sync-seek', ({ roomId, time }) => {
-    if (!roomStore.isHost(roomId, socket.id)) return;
+    if (!roomStore.canControl(roomId, socket.id)) return;
 
     const room = roomStore.getRoom(roomId);
     if (room) {
       roomStore.updatePlayState(roomId, { ...room.playState, currentTime: time });
-      socket.to(roomId).emit('sync-seek', { time });
+      io.to(roomId).emit('sync-seek', { time });
     }
   });
 
@@ -58,8 +60,18 @@ module.exports = function(io, socket) {
       socket.emit('sync-state', {
         video: room.video,
         playState: room.playState,
-        danmakuHistory: room.danmakuHistory
+        danmakuHistory: room.danmakuHistory,
+        allowAllControl: room.allowAllControl
       });
     }
+  });
+
+  // 更新权限设置
+  socket.on('update-permission', ({ roomId, allowAllControl }) => {
+    if (!roomStore.isHost(roomId, socket.id)) return;
+
+    roomStore.setAllowAllControl(roomId, allowAllControl);
+    io.to(roomId).emit('permission-updated', { allowAllControl });
+    console.log(`房间 ${roomId} 权限更新: allowAllControl=${allowAllControl}`);
   });
 };
