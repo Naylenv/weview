@@ -89,6 +89,25 @@ docker compose up -d --build
 
 保存后即可通过 `https://你的域名` 访问。
 
+### 可选：启用 CDN 缓存加速视频
+
+如果使用 Cloudflare Tunnel，可以配置缓存规则让视频文件通过 CDN 分发，减轻服务器带宽压力：
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)，选择你的域名
+2. 进入 **Rules** → **Cache Rules** → **Create rule**
+3. 配置规则：
+   - **规则名称**: `Cache WeView Videos`
+   - **如果传入请求匹配**: 自定义筛选表达式
+     - 字段: `URI 路径`
+     - 运算符: `包含`
+     - 值: `/uploads/`
+   - **缓存资格**: `符合缓存条件`
+   - **边缘 TTL**: `忽略缓存控制标头，使用此 TTL` → `1 个月`
+   - **浏览器 TTL**: `覆盖源服务器` → `1 天`
+4. 点击 **部署**
+
+配置后，视频会被缓存到 Cloudflare 全球边缘节点，后续请求直接从 CDN 返回，无需经过服务器。
+
 ### 方式三：传统部署
 
 ```bash
