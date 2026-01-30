@@ -3,6 +3,8 @@ services:
     build: .
     container_name: weview
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     volumes:
       - ./uploads:/app/uploads
 
