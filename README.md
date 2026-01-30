@@ -1,177 +1,115 @@
 # WeView
 
-与朋友同步观影，共享每一个精彩瞬间。
+多人同步观影 Web 应用，支持实时播放同步和弹幕互动。
 
-WeView 是一个多人同步观影 Web 应用，让你和朋友可以远程一起看电影，实时同步播放进度，还能发送弹幕互动。
+## 功能
 
-## 功能特性
+- 房间系统：创建/加入房间
+- 电影院模式：禁用播放器直接交互，通过中控台统一控制
+- 实时同步：播放/暂停/进度同步
+- 权限控制：房主可开启"允许所有人控制"
+- 弹幕系统：实时弹幕显示
 
-- **房间系统** - 创建或加入房间，邀请朋友一起观影
-- **视频管理** - 上传、选择、删除视频文件
-- **电影院模式** - 像电影院一样，观众无法直接控制播放器，由房主通过中控台统一控制
-- **同步播放** - 播放/暂停/进度实时同步到所有成员
-- **权限控制** - 房主可以开启"允许所有人控制"，让成员也能操作播放
-- **弹幕系统** - 发送彩色弹幕，实时显示在视频上
-- **弹幕记录** - 查看历史弹幕消息
+## 同步方案
+
+采用**电影院模式**设计：用户无法直接操作播放器，所有控制通过中控台发起。
+
+```
+┌─────────────┐     sync-play/pause/seek     ┌─────────────┐
+│  控制者     │  ─────────────────────────►  │   服务端    │
+│ (房主/授权) │                              │  Socket.IO  │
+└─────────────┘                              └──────┬──────┘
+                                                    │
+                                    io.to(roomId).emit()
+                                                    │
+                    ┌───────────────┬───────────────┼───────────────┐
+                    ▼               ▼               ▼               ▼
+              ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+              │ 成员 A   │   │ 成员 B   │   │ 成员 C   │   │ 控制者   │
+              │ dp.seek()│   │ dp.seek()│   │ dp.seek()│   │ dp.seek()│
+              │ dp.play()│   │ dp.play()│   │ dp.play()│   │ dp.play()│
+              └──────────┘   └──────────┘   └──────────┘   └──────────┘
+```
+
+**核心逻辑：**
+1. 播放器禁用交互（CSS `pointer-events: none` + DPlayer `hotkey: false`）
+2. 控制操作通过 ControlPanel 组件发起
+3. 服务端验证权限后广播给**所有用户**（包括发起者）
+4. 所有客户端收到事件后执行相同操作，保证状态一致
+
+**权限检查：**
+```javascript
+canControl(roomId, socketId) {
+  const room = getRoom(roomId);
+  if (room.allowAllControl) return true;
+  return room.hostId === socketId;
+}
+```
 
 ## 技术栈
 
-**前端**
-- Vue 3 + Vite
-- Socket.IO Client
-- DPlayer 视频播放器
-
-**后端**
-- Node.js + Express
-- Socket.IO
-- Multer (文件上传)
+| 前端 | 后端 |
+|------|------|
+| Vue 3 + Vite | Node.js + Express |
+| Socket.IO Client | Socket.IO |
+| DPlayer | Multer |
 
 ## 快速开始
 
-### 本地开发
-
 ```bash
-# 安装依赖
-npm install
-cd client && npm install && cd ..
-
-# 启动开发服务器
+# 本地开发
+npm install && cd client && npm install && cd ..
 npm run dev
-```
 
-访问 http://localhost:5173
+# Docker 部署
+docker compose up -d --build
+```
 
 ## 部署
 
-### 方式一：Docker 一键部署（推荐）
+### Docker（推荐）
 
 ```bash
 git clone https://github.com/Naylenv/weview.git
-cd weview
-docker compose up -d --build
+cd weview && docker compose up -d --build
 ```
 
 访问 `http://服务器IP:3000`
 
-### 方式二：Docker + 域名（Cloudflare Tunnel）
+### Cloudflare Tunnel（可选）
 
-无需开放端口，通过 Cloudflare Tunnel 安全访问。
+1. 在 [Cloudflare Zero Trust](https://one.dash.cloudflare.com) 创建 Tunnel
+2. 配置 `.env` 填入 Token
+3. 编辑 `docker-compose.yml` 取消 cloudflared 注释
+4. 配置域名路由：Service Type `HTTP`，URL `weview:3000`
 
-**1. 创建 Cloudflare Tunnel**
+### CDN 缓存（可选）
 
-1. 登录 [Cloudflare Zero Trust](https://one.dash.cloudflare.com)
-2. 进入 **Networks** → **Tunnels** → **Create a tunnel**
-3. 选择 **Cloudflared**，给 Tunnel 起个名字
-4. 复制生成的 Token
-
-**2. 配置并启动**
-
-```bash
-git clone https://github.com/Naylenv/weview.git
-cd weview
-
-# 配置 Token
-cp .env.example .env
-nano .env  # 填入你的 TUNNEL_TOKEN
-
-# 启用 Cloudflare Tunnel（编辑 docker-compose.yml，取消 cloudflared 部分的注释）
-nano docker-compose.yml
-
-# 启动
-docker compose up -d --build
-```
-
-**3. 配置域名路由**
-
-回到 Cloudflare Tunnel 配置页面：
-- **Subdomain**: 你想要的子域名（如 `weview`）
-- **Domain**: 选择你的域名
-- **Service Type**: `HTTP`
-- **URL**: `weview:3000`
-
-保存后即可通过 `https://你的域名` 访问。
-
-### 可选：启用 CDN 缓存加速视频
-
-如果使用 Cloudflare Tunnel，可以配置缓存规则让视频文件通过 CDN 分发，减轻服务器带宽压力：
-
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)，选择你的域名
-2. 进入 **Rules** → **Cache Rules** → **Create rule**
-3. 配置规则：
-   - **规则名称**: `Cache WeView Videos`
-   - **如果传入请求匹配**: 自定义筛选表达式
-     - 字段: `URI 路径`
-     - 运算符: `包含`
-     - 值: `/uploads/`
-   - **缓存资格**: `符合缓存条件`
-   - **边缘 TTL**: `忽略缓存控制标头，使用此 TTL` → `1 个月`
-   - **浏览器 TTL**: `覆盖源服务器` → `1 天`
-4. 点击 **部署**
-
-配置后，视频会被缓存到 Cloudflare 全球边缘节点，后续请求直接从 CDN 返回，无需经过服务器。
-
-### 方式三：传统部署
-
-```bash
-git clone https://github.com/Naylenv/weview.git
-cd weview
-
-npm install
-cd client && npm install && cd ..
-npm run build
-
-# 使用 PM2 启动
-pm2 start server/index.js --name weview
-```
-
-## 常用命令
-
-```bash
-# 查看状态
-docker compose ps
-
-# 查看日志
-docker compose logs -f weview
-
-# 重启服务
-docker compose restart
-
-# 更新部署
-git pull && docker compose up -d --build
-
-# 停止服务
-docker compose down
-```
+在 Cloudflare Rules → Cache Rules 添加规则：
+- URI 路径包含 `/uploads/`
+- 边缘 TTL: 1 个月
 
 ## 项目结构
 
 ```
-weview/
-├── client/                 # 前端 Vue 应用
-│   ├── src/
-│   │   ├── components/     # 组件
-│   │   ├── composables/    # 组合式函数
-│   │   └── views/          # 页面
-│   └── vite.config.js
-├── server/                 # 后端 Node.js 服务
-│   ├── routes/             # API 路由
-│   ├── socket/             # Socket.IO 处理器
-│   └── store/              # 数据存储
-├── uploads/                # 上传的视频文件
-├── docker-compose.yml      # Docker 编排配置
-├── Dockerfile              # Docker 镜像构建
-└── package.json
+client/src/
+├── components/
+│   ├── ControlPanel.vue  # 播放中控台
+│   ├── DanmakuLayer.vue  # 弹幕层
+│   └── ...
+├── composables/
+│   ├── useRoom.js        # 房间状态
+│   └── useSocket.js      # Socket 封装
+└── views/
+    └── Room.vue          # 房间页
+
+server/
+├── socket/
+│   ├── syncHandler.js    # 同步逻辑
+│   └── roomHandler.js    # 房间管理
+└── store/
+    └── roomStore.js      # 内存存储
 ```
-
-## 使用说明
-
-1. 打开首页，输入昵称
-2. 点击「创建房间」成为房主，或输入房间号「加入房间」
-3. 房主上传视频并选择播放
-4. 房主通过中控台控制播放（播放/暂停、快进/快退、拖动进度条）
-5. 所有成员同步观看，无法直接操作播放器
-6. 房主可以开启「允许所有人控制」让成员也能操作
-7. 发送弹幕与朋友互动
 
 ## License
 
