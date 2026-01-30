@@ -14,23 +14,21 @@
 
 采用**电影院模式**设计：用户无法直接操作播放器，所有控制通过中控台发起。
 
-```mermaid
-sequenceDiagram
-    participant C as 控制者 (房主/授权)
-    participant S as 服务端 Socket.IO
-    participant A as 成员 A
-    participant B as 成员 B
-    participant D as 控制者自己
-
-    C->>S: sync-play / sync-pause / sync-seek
-    Note over S: 权限验证 canControl()
-    S-->>A: io.to(roomId).emit()
-    S-->>B: io.to(roomId).emit()
-    S-->>D: io.to(roomId).emit()
-
-    A->>A: dp.seek() + dp.play()
-    B->>B: dp.seek() + dp.play()
-    D->>D: dp.seek() + dp.play()
+```
+┌─────────────┐     sync-play/pause/seek     ┌─────────────┐
+│  控制者     │  ─────────────────────────►  │   服务端    │
+│ (房主/授权) │                              │  Socket.IO  │
+└─────────────┘                              └──────┬──────┘
+                                                    │
+                                    io.to(roomId).emit()
+                                                    │
+                    ┌───────────────┬───────────────┼───────────────┐
+                    ▼               ▼               ▼               ▼
+              ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+              │ 成员 A   │   │ 成员 B   │   │ 成员 C   │   │ 控制者   │
+              │ dp.seek()│   │ dp.seek()│   │ dp.seek()│   │ dp.seek()│
+              │ dp.play()│   │ dp.play()│   │ dp.play()│   │ dp.play()│
+              └──────────┘   └──────────┘   └──────────┘   └──────────┘
 ```
 
 **核心逻辑：**
