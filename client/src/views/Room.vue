@@ -52,11 +52,27 @@
               </div>
               <div v-else ref="playerContainer" class="dplayer-wrap"></div>
               <DanmakuLayer ref="danmakuLayerRef" :paused="isPaused" />
+              <div v-if="video" class="player-overlay-buttons">
+                <button class="overlay-btn" @click="handleLocalToggle" :title="isPaused ? '本地播放' : '本地暂停'">
+                  <svg v-if="isPaused" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 5v14l11-7L8 5z" fill="currentColor"/>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="none">
+                    <rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/>
+                    <rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/>
+                  </svg>
+                </button>
+                <button class="overlay-btn" @click="handleSync" title="同步">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M4 12a8 8 0 018-8v3l4-4-4-4v3a10 10 0 100 20 10 10 0 006.32-2.26l-1.46-1.46A8 8 0 014 12z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
         <ControlPanel
-          v-if="video"
+          v-if="video && canControl()"
           :currentTime="currentTime"
           :duration="duration"
           :isPlaying="!isPaused"
@@ -457,6 +473,16 @@ const handleSync = () => {
   requestSync();
 };
 
+const handleLocalToggle = () => {
+  if (dp) {
+    if (dp.video.paused) {
+      dp.play();
+    } else {
+      dp.pause();
+    }
+  }
+};
+
 const copyRoomLink = () => {
   const link = window.location.href;
   navigator.clipboard.writeText(link);
@@ -612,6 +638,48 @@ const formatSize = (bytes) => {
   aspect-ratio: 16 / 9;
   position: relative;
   background: #000;
+}
+
+.player-overlay-buttons {
+  position: absolute;
+  bottom: 60px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.player-container:hover .player-overlay-buttons {
+  opacity: 1;
+}
+
+.overlay-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.overlay-btn:hover {
+  background: rgba(212, 168, 83, 0.8);
+  border-color: var(--color-gold);
+  color: var(--color-bg-deep);
+  transform: scale(1.1);
+}
+
+.overlay-btn svg {
+  width: 22px;
+  height: 22px;
 }
 
 .no-video {
