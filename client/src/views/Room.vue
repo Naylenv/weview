@@ -85,7 +85,6 @@
           @pause="handleControlPause"
           @seek="handleControlSeek"
           @update-permission="handleUpdatePermission"
-          @sync="handleSync"
         />
         <DanmakuInput @send="handleSendDanmaku" />
       </div>

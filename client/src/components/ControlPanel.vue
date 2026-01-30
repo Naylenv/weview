@@ -35,11 +35,6 @@
             <text x="12" y="15" text-anchor="middle" font-size="6" fill="currentColor">30</text>
           </svg>
         </button>
-        <button class="btn-control btn-sync" @click="onSync" title="同步到服务器">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M4 12a8 8 0 018-8v3l4-4-4-4v3a10 10 0 100 20 10 10 0 006.32-2.26l-1.46-1.46A8 8 0 014 12z" fill="currentColor"/>
-          </svg>
-        </button>
       </div>
       <div class="progress-section">
         <span class="time-display">{{ formatTime(currentTime) }}</span>
@@ -84,7 +79,7 @@ const props = defineProps({
   allowAllControl: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['play', 'pause', 'seek', 'update-permission', 'sync'])
+const emit = defineEmits(['play', 'pause', 'seek', 'update-permission'])
 
 const progressBarRef = ref(null)
 const isSeeking = ref(false)
@@ -132,10 +127,6 @@ const onProgressClick = (e) => {
 
 const onPermissionChange = (e) => {
   emit('update-permission', e.target.checked)
-}
-
-const onSync = () => {
-  emit('sync')
 }
 
 const formatTime = (seconds) => {
@@ -213,22 +204,6 @@ const formatTime = (seconds) => {
 .btn-play svg {
   width: 26px;
   height: 26px;
-}
-
-.btn-sync {
-  width: 40px;
-  height: 40px;
-  margin-left: 8px;
-}
-
-.btn-sync svg {
-  width: 20px;
-  height: 20px;
-}
-
-.btn-sync:hover {
-  color: var(--color-gold);
-  border-color: var(--color-gold-dim);
 }
 
 .btn-control:disabled {
