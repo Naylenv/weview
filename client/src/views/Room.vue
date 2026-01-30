@@ -671,10 +671,6 @@ const formatSize = (bytes) => {
   pointer-events: none;
 }
 
-:deep(.dplayer-video-wrap) {
-  pointer-events: none;
-}
-
 .sidebar {
   width: 340px;
   display: flex;
