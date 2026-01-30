@@ -47,9 +47,16 @@ server/
 │   └── danmakuHandler.js     # 弹幕处理
 └── store/
     └── roomStore.js      # 内存数据存储
+
+# 部署相关
+docker-compose.yml        # Docker 编排（含可选 Cloudflare Tunnel）
+Dockerfile                # Docker 镜像构建
+.env.example              # 环境变量模板
 ```
 
 ## 常用命令
+
+### 开发
 
 ```bash
 # 启动开发服务器 (前后端同时)
@@ -63,6 +70,22 @@ npm run client
 
 # 构建前端
 npm run build
+```
+
+### Docker 部署
+
+```bash
+# 构建并启动
+docker compose up -d --build
+
+# 查看日志
+docker compose logs -f weview
+
+# 重启
+docker compose restart
+
+# 停止
+docker compose down
 ```
 
 ## 开发约定
@@ -106,3 +129,9 @@ npm run build
 - 视频文件存储在 `uploads/` 目录，不纳入 Git
 - 房间数据存储在内存中，服务重启后清空
 - 前端开发服务器代理 `/api` 和 `/socket.io` 到后端
+
+## 部署架构
+
+- **Docker**: 使用 `docker-compose.yml` 一键部署
+- **域名访问**: 可选配置 Cloudflare Tunnel（无需开放端口）
+- **CDN 加速**: 可配置 Cloudflare Cache Rules 缓存视频文件
